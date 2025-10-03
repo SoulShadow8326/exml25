@@ -8,6 +8,7 @@ radius = 48.5
 height = 150.0195
 
 [node name="car_root" type="CharacterBody2D"]
+scale = Vector2(0.6661193, 0.6661193)
 script = ExtResource("1_y2uan")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
