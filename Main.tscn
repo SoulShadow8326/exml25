@@ -37,7 +37,7 @@ layer_0/tile_data = PackedInt32Array(-327692, 0, 0, -327691, 0, 0, -262155, 0, 0
 
 [node name="car_root" parent="." instance=ExtResource("3_fos0i")]
 z_index = 1
-position = Vector2(237, -33)
+position = Vector2(-860.0001, 115.000015)
 
 [node name="Hungaroring" type="Sprite2D" parent="."]
 position = Vector2(682, -1452)
