@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://bqmdw6n7m3spv"]
 
-[ext_resource type="Script" uid="uid://dks3ttxv5007c" path="res://car2.gd" id="1_y2uan"]
-[ext_resource type="Texture2D" uid="uid://buecxg36r6ch8" path="res://image-removebg-preview (5).png" id="2_y2uan"]
+[ext_resource type="Script" uid="uid://dks3ttxv5007c" path="res://scripts/car2.gd" id="1_y2uan"]
+[ext_resource type="Texture2D" uid="uid://buecxg36r6ch8" path="res://assets/image-removebg-preview (5).png" id="2_y2uan"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_y2uan"]
 radius = 48.5
