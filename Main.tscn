@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://bgksv1qngmvud"]
+[gd_scene load_steps=16 format=3 uid="uid://bgksv1qngmvud"]
 
 [ext_resource type="Texture2D" uid="uid://bkxu3bic0fyui" path="res://image.png" id="1_3dxm6"]
 [ext_resource type="Texture2D" uid="uid://w71ivsodlft2" path="res://tile_0173.png" id="1_r0du0"]
@@ -7,7 +7,6 @@
 [ext_resource type="Texture2D" uid="uid://bc0fkadstwur3" path="res://New Project (16).png" id="3_lgr22"]
 [ext_resource type="Texture2D" uid="uid://bpo800ev3o31s" path="res://New Project (17).png" id="4_03owx"]
 [ext_resource type="Texture2D" uid="uid://t34qj8g522p5" path="res://New Project (18).png" id="5_wkp8b"]
-[ext_resource type="Texture2D" uid="uid://cspysdvgtdy2g" path="res://track.png" id="9_20pc6"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_03owx"]
 texture = ExtResource("1_3dxm6")
@@ -5687,9 +5686,3 @@ layer_0/tile_data = PackedInt32Array(1048648, 0, 1610612736, 1048649, 0, 1610612
 [node name="car_root" parent="." instance=ExtResource("3_fos0i")]
 z_index = 1
 position = Vector2(1000, -33)
-origin_node_path = NodePath("../Track")
-
-[node name="Track" type="Sprite2D" parent="."]
-visible = false
-position = Vector2(3426, -1801)
-texture = ExtResource("9_20pc6")
