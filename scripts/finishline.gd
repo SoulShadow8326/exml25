@@ -11,6 +11,7 @@ var checkpoints_passed := {}
 signal lap_completed(current_lap: int, car_id: int)
 
 func _ready():
+	
 	connect("body_entered", Callable(self, "_on_body_entered"))
 	
 	connect("body_exited", Callable(self, "_on_body_exited"))

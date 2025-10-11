@@ -9,6 +9,7 @@ var current_lap: int = 0
 var total_laps: int = 0;
 var car_id: int = 0;
 
+
 @export var max_health: float = 100.0
 @export var apf: float = 0.6 #agressor penalty factor <3
 @export var dmg_cap: float = 25.0
@@ -48,13 +49,13 @@ var collision_rebound_layer_mask: int = 1
 var collision_layer_mask: int = 1
 @export var origin_node_path: NodePath = NodePath("")
 var origin_pos: Vector2 = Vector2.ZERO
-
 func _cubic_bezier_y(u: float) -> float:
 	var t = clamp(u, 0.0, 1.0)
 	var inv = 1.0 - t
 	return 3.0 * inv * inv * t * bezier_cp1y + 3.0 * inv * t * t * bezier_cp2y + t * t * t
 
 func _physics_process(delta: float) -> void:
+
 	acc = Vector2.ZERO
 	forward_block_timer = max(forward_block_timer - delta, 0.0)
 	get_input(delta)
@@ -296,7 +297,17 @@ func set_origin_node(node: Node2D) -> void:
 
 func _format_vec2(v: Vector2) -> String:
 	return "(" + str(round(v.x * 100) / 100.0) + ", " + str(round(v.y * 100) / 100.0) + ")"
+const ASCII_BANNER := """
+███████╗ ██╗  ██╗ ██╗   ██╗ ███╗   ██╗
+██╔════╝ ██║  ██║ ██║   ██║ ████╗  ██║
+█████╗     ███╔═╝ ██║   ██║ ██╔██╗ ██║
+██╔══╝   ██╔══██║ ██║   ██║ ██║╚██╗██║
+███████╗ ██║  ██║ ╚██████╔╝ ██║ ╚████║
+╚══════╝ ╚═╝  ╚═╝  ╚═════╝  ╚═╝  ╚═══╝
+SoulShadow8326 | hurshbajaj | v-pun215 | vergil6144
+"""
 func _ready() -> void:
+	print(ASCII_BANNER)
 	current_health = max_health
 	origin_pos = _compute_map_center()
 	
