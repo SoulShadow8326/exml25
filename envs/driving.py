@@ -51,27 +51,7 @@ class DrivingEnv(gym.Env):
 		else:
 			self.car.apply_action(action)
 		p.stepSimulation()
-		car_id, _ = self.car.get_ids()
-		contacts = p.getContactPoints(bodyA=car_id, physicsClientId=self.client)
-		for cp in contacts:
-			other = cp[2]
-			normal_on_b = cp[7]
-			if abs(normal_on_b[2]) > 0.5:
-				continue
-			vA = p.getBaseVelocity(car_id, self.client)[0]
-			if other >= 0:
-				vB = p.getBaseVelocity(other, self.client)[0]
-			else:
-				vB = (0.0, 0.0, 0.0)
-			vrel = (vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2])
-			normal_a = (-normal_on_b[0], -normal_on_b[1], -normal_on_b[2])
-			impact_speed = max(0.0, vrel[0] * normal_a[0] + vrel[1] * normal_a[1] + vrel[2] * normal_a[2])
-			if impact_speed <= 0.05:
-				continue
-			rebound = 0.6
-			dv = (normal_on_b[0] * impact_speed * rebound, normal_on_b[1] * impact_speed * rebound, normal_on_b[2] * impact_speed * rebound)
-			new_vel = (vA[0] + dv[0], vA[1] + dv[1], vA[2] + dv[2])
-			p.resetBaseVelocity(car_id, linearVelocity=new_vel, physicsClientId=self.client)
+		self.car.handle_collisions()
 		car_ob = self.car.get_observation()
 		car_pos = (car_ob[0], car_ob[1])
 		cp_result = None

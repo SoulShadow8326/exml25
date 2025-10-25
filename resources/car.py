@@ -39,9 +39,50 @@ class Car:
         self.brake_ramp = 0.0
         self.brake_ramp_rate = 0.8
         self.brake_decay_rate = 6.0
+        self.collision_stun = 0.0
 
     def get_ids(self):
         return self.car, self.client
+
+    def handle_collisions(self):
+        contacts = p.getContactPoints(bodyA=self.car, physicsClientId=self.client)
+        for cp in contacts:
+            other = cp[2]
+            normal_on_b = cp[7]
+            if abs(normal_on_b[2]) > 0.5:
+                continue
+            vA = p.getBaseVelocity(self.car, self.client)[0]
+            if other >= 0:
+                vB = p.getBaseVelocity(other, self.client)[0]
+            else:
+                vB = (0.0, 0.0, 0.0)
+            vrel = (vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2])
+            normal_a = (-normal_on_b[0], -normal_on_b[1], -normal_on_b[2])
+            impact_speed = max(0.0, vrel[0] * normal_a[0] + vrel[1] * normal_a[1] + vrel[2] * normal_a[2])
+            if impact_speed <= 0.05:
+                continue
+            rebound = 5.0
+            pos, ori = p.getBasePositionAndOrientation(self.car, self.client)
+            rot = p.getMatrixFromQuaternion(ori)
+            forward = (rot[0], rot[3], rot[6])
+            lin_vel = vA
+            forward_speed = lin_vel[0] * forward[0] + lin_vel[1] * forward[1] + lin_vel[2] * forward[2]
+            vel_no_forward = (lin_vel[0] - forward[0] * forward_speed,
+                              lin_vel[1] - forward[1] * forward_speed,
+                              lin_vel[2] - forward[2] * forward_speed)
+            bounce = (normal_on_b[0] * impact_speed * rebound,
+                      normal_on_b[1] * impact_speed * rebound,
+                      normal_on_b[2] * impact_speed * rebound)
+            new_vel = (vel_no_forward[0] + bounce[0], vel_no_forward[1] + bounce[1], vel_no_forward[2] + bounce[2])
+            p.resetBaseVelocity(self.car, linearVelocity=new_vel, physicsClientId=self.client)
+            self.joint_speed = 0.0
+            p.setJointMotorControlArray(bodyUniqueId=self.car,
+                                        jointIndices=self.drive_joints,
+                                        controlMode=p.VELOCITY_CONTROL,
+                                        targetVelocities=[0.0] * len(self.drive_joints),
+                                        forces=[0.0] * len(self.drive_joints),
+                                        physicsClientId=self.client)
+            self.collision_stun = max(self.collision_stun, 1.0)
 
     def apply_action(self, action):
         boost = False
@@ -83,6 +124,13 @@ class Car:
         throttle = min(max(throttle, -1), 1)
         steering_angle = max(min(steering_angle, 0.6), -0.6)
         brake = min(max(brake, 0.0), 1.0)
+
+        self.collision_stun = max(0.0, self.collision_stun - (1/30))
+        if self.collision_stun > 0.0:
+            throttle = 0.0
+            steering_angle = 0.0
+            boost = False
+            brake = 0.0
 
         p.setJointMotorControlArray(self.car, self.steering_joints,
                                     controlMode=p.POSITION_CONTROL,
@@ -139,6 +187,9 @@ class Car:
             self.joint_speed = new_forward_speed
 
         max_force = 1.2 * (1.0 + 0.5 * self.boost_ramp)
+
+        if self.collision_stun > 0.0:
+            max_force = 0.0
 
         if self.brake_ramp > 0.01:
             p.setJointMotorControlArray(
