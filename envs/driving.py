@@ -53,6 +53,7 @@ class DrivingEnv(gym.Env):
 			self.car.apply_action(action)
 		for _ in range(getattr(self, 'physics_substeps', 1)):
 			p.stepSimulation()
+		self.step_count = getattr(self, 'step_count', 0) + 1
 		self.car.handle_collisions()
 		car_ob = self.car.get_observation()
 		car_pos = (car_ob[0], car_ob[1])
@@ -68,6 +69,10 @@ class DrivingEnv(gym.Env):
 		elif cp_result == 'lap':
 			reward = 100
 			self.done = True
+			elapsed_steps = getattr(self, 'step_count', 0) - getattr(self, 'lap_start_step', 0)
+			lap_seconds = elapsed_steps * getattr(self, 'time_per_env_step', 1/30)
+			self.lap_times.append(lap_seconds)
+			self.lap_start_step = getattr(self, 'step_count', 0)
 
 		xmin, xmax = self.world_bounds[0]
 		ymin, ymax = self.world_bounds[1]
@@ -81,7 +86,61 @@ class DrivingEnv(gym.Env):
 		ob = np.array(car_ob + lap_coord, dtype=np.float32)
 		terminated = self.done
 		truncated = False
-		return ob, reward, terminated, truncated, {}
+		car_id, client_id = self.car.get_ids()
+		pos, ori = p.getBasePositionAndOrientation(car_id, client_id)
+		lin_vel, ang_vel = p.getBaseVelocity(car_id, client_id)
+		rot = p.getMatrixFromQuaternion(ori)
+		forward_vec = (rot[0], rot[3], rot[6])
+		forward_speed = lin_vel[0] * forward_vec[0] + lin_vel[1] * forward_vec[1] + lin_vel[2] * forward_vec[2]
+		total_speed = math.hypot(lin_vel[0], lin_vel[1], lin_vel[2])
+		steer_vals = []
+		for j in getattr(self.car, 'steering_joints', []):
+			js = p.getJointState(car_id, j, client_id)
+			steer_vals.append(js[0])
+		steer_angle = 0.0
+		if steer_vals:
+			steer_angle = sum(steer_vals) / len(steer_vals)
+		steer_degrees = math.degrees(steer_angle)
+		track_coords = {}
+		if hasattr(self, 'track') and self.track is not None:
+			track_coords['lap_start'] = tuple(self.track.lap_start)
+			if getattr(self.track, 'numbered_checkpoints', None):
+				track_coords['numbered'] = dict(self.track.numbered_checkpoints)
+				track_coords['ordered_ids'] = list(self.track.ordered_checkpoint_ids)
+				next_cp = None
+				if getattr(self.track, '_seq_next_index', None) is not None:
+					ids = self.track.ordered_checkpoint_ids
+					if ids:
+						next_id = ids[self.track._seq_next_index]
+						next_cp = self.track.numbered_checkpoints.get(next_id)
+				track_coords['next_checkpoint'] = next_cp
+			else:
+				track_coords['checkpoints'] = list(self.track.checkpoints)
+		lap_no = max(1, len(getattr(self, 'lap_times', [])) + 1)
+		if getattr(self, 'track', None) and getattr(self.track, 'numbered_checkpoints', None):
+			ids = self.track.ordered_checkpoint_ids
+			if ids:
+				completed = getattr(self.track, '_seq_next_index', 0)
+				progress_pct = (completed / len(ids)) * 100.0
+			else:
+				progress_pct = 0.0
+		else:
+			if getattr(self.track, 'checkpoints', None):
+				total = len(self.track.checkpoints)
+				completed = min(getattr(self.track, 'next_checkpoint', 0), total)
+				progress_pct = (completed / total) * 100.0 if total > 0 else 0.0
+			else:
+				progress_pct = 0.0
+		info = {
+			'steering_degrees': steer_degrees,
+			'forward_speed': forward_speed,
+			'total_speed': total_speed,
+			'track_coords': track_coords,
+			'lap_times': list(getattr(self, 'lap_times', [])),
+			'lap_progress_pct': progress_pct,
+			'lap_no': lap_no,
+		}
+		return ob, reward, terminated, truncated, info
 
 	def _apply_act_with_boost(self, act, boost, brake):
 		if act == 0:
@@ -101,12 +160,84 @@ class DrivingEnv(gym.Env):
 			steering_angle = 0.0
 		self.car.apply_action({'throttle': throttle, 'steering': steering_angle, 'boost': bool(boost), 'brake': brake})
 
+	def get_client_info(self):
+		car = getattr(self, 'car', None)
+		info = {
+			'steering_degrees': 0.0,
+			'forward_speed': 0.0,
+			'total_speed': 0.0,
+			'track_coords': {},
+			'lap_times': list(getattr(self, 'lap_times', [])),
+			'lap_progress_pct': 0.0,
+			'lap_no': max(1, len(getattr(self, 'lap_times', [])) + 1),
+		}
+		if car is None:
+			return info
+		car_id, client_id = car.get_ids()
+		pos, ori = p.getBasePositionAndOrientation(car_id, client_id)
+		lin_vel, ang_vel = p.getBaseVelocity(car_id, client_id)
+		rot = p.getMatrixFromQuaternion(ori)
+		forward_vec = (rot[0], rot[3], rot[6])
+		forward_speed = lin_vel[0] * forward_vec[0] + lin_vel[1] * forward_vec[1] + lin_vel[2] * forward_vec[2]
+		total_speed = math.hypot(lin_vel[0], lin_vel[1], lin_vel[2])
+		steer_vals = []
+		for j in getattr(car, 'steering_joints', []):
+			js = p.getJointState(car_id, j, client_id)
+			steer_vals.append(js[0])
+		steer_angle = 0.0
+		if steer_vals:
+			steer_angle = sum(steer_vals) / len(steer_vals)
+		steer_degrees = math.degrees(steer_angle)
+		track_coords = {}
+		track = getattr(self, 'track', None)
+		if track is not None:
+			track_coords['lap_start'] = tuple(track.lap_start)
+			if getattr(track, 'numbered_checkpoints', None):
+				track_coords['numbered'] = dict(track.numbered_checkpoints)
+				track_coords['ordered_ids'] = list(track.ordered_checkpoint_ids)
+				next_cp = None
+				if getattr(track, '_seq_next_index', None) is not None:
+					ids = track.ordered_checkpoint_ids
+					if ids:
+						next_id = ids[track._seq_next_index]
+						next_cp = track.numbered_checkpoints.get(next_id)
+				track_coords['next_checkpoint'] = next_cp
+			else:
+				track_coords['checkpoints'] = list(track.checkpoints)
+		if getattr(self, 'track', None) and getattr(self.track, 'numbered_checkpoints', None):
+			ids = self.track.ordered_checkpoint_ids
+			if ids:
+				completed = getattr(self.track, '_seq_next_index', 0)
+				progress_pct = (completed / len(ids)) * 100.0
+			else:
+				progress_pct = 0.0
+		else:
+			if getattr(self.track, 'checkpoints', None):
+				total = len(self.track.checkpoints)
+				completed = min(getattr(self.track, 'next_checkpoint', 0), total)
+				progress_pct = (completed / total) * 100.0 if total > 0 else 0.0
+			else:
+				progress_pct = 0.0
+		info.update({
+			'steering_degrees': steer_degrees,
+			'forward_speed': forward_speed,
+			'total_speed': total_speed,
+			'track_coords': track_coords,
+			'lap_progress_pct': progress_pct,
+			'lap_no': max(1, len(getattr(self, 'lap_times', [])) + 1),
+		})
+		return info
+
 	def seed(self, seed=None):
 		self.np_random, seed = gym.utils.seeding.np_random(seed)
 		return [seed]
 
 	def reset(self, *, seed=None, options=None):
 		p.resetSimulation(self.client)
+		self.step_count = 0
+		self.lap_times = []
+		self.lap_start_step = 0
+		self.time_per_env_step = getattr(self, 'physics_substeps', 1) * (1/30)
 		p.setGravity(0, 0, -10, physicsClientId=self.client)
 		plane = Plane(self.client)
 		try:
