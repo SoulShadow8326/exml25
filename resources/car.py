@@ -20,8 +20,8 @@ class Car:
         self.steering_joints = [0, 2]
         self.drive_joints = [1, 3, 4, 5]
         self.joint_speed = 0
-        self.c_rolling = 0.2
-        self.c_drag = 0.01
+        self.c_rolling = 0.45
+        self.c_drag = 0.06
         self.c_throttle = 80
 
         self.max_drive_force = 400.0
@@ -47,8 +47,8 @@ class Car:
         self.c_downforce = 10.0
         self.c_angular_damping = 1.0
         self.c_kanav_powder = 10.0
-        self.default_linear_damping = 0.6
-        self.default_angular_damping = 12.0
+        self.default_linear_damping = 1.5
+        self.default_angular_damping = 24.0
         self.c_stabilize_angle = 120.0
         self.c_stabilize_angvel = 12.0
         self.c_stabilize_max_torque = 200.0
