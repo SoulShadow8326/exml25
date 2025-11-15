@@ -13,6 +13,7 @@ class Track:
         self.collision_mask = None
         self.checkpoints = {}
         self.start_pos = None
+        self.spawn_positions = []
         self._parse_track()
         
     def _parse_track(self):
@@ -22,8 +23,11 @@ class Track:
             for x, cell in enumerate(row):
                 if cell == '#':
                     self.collision_mask[y, x] = True
-                elif cell == 'p':
-                    self.start_pos = (x * CELL_SIZE + CELL_SIZE // 2, y * CELL_SIZE + CELL_SIZE // 2)
+                elif cell in ('p', 'q', 'r', 's', 'a', 'b', 'c', 'd'):
+                    pos = (x * CELL_SIZE + CELL_SIZE // 2, y * CELL_SIZE + CELL_SIZE // 2)
+                    self.spawn_positions.append(pos)
+                    if cell == 'p' and not self.start_pos:
+                        self.start_pos = pos
                 elif cell.isdigit():
                     checkpoint_id = int(cell)
                     if checkpoint_id not in self.checkpoints:
@@ -79,4 +83,11 @@ class Track:
                     pygame.draw.rect(screen, color, screen_rect)
     
     def get_start_position(self):
-        return self.start_pos
+        if self.start_pos:
+            return self.start_pos
+        if self.spawn_positions:
+            return self.spawn_positions[0]
+        return None
+
+    def get_start_positions(self):
+        return list(self.spawn_positions)

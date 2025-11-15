@@ -10,8 +10,9 @@ class F1Game:
     def __init__(self):
         pygame.init()
         self._track = Track()
-        self._screen_width = 1800
-        self._screen_height = 1500
+        info = pygame.display.Info()
+        self._screen_width = info.current_w
+        self._screen_height = info.current_h
         self._screen = pygame.display.set_mode((self._screen_width, self._screen_height))
         pygame.display.set_caption("F1 Racing Environment")
 
@@ -20,9 +21,18 @@ class F1Game:
 
         self._cars = []
         model_dirs = [d for d in os.listdir('models') if os.path.isdir(os.path.join('models', d))]
+        spawn_positions = self._track.get_start_positions()
         for idx, model_dir in enumerate(model_dirs):
-            start_x, start_y = self._track.get_start_position()
-            car = Car(start_x + (idx*CAR_GAP), start_y, "assets/car.png", idx, start_x + (idx*CAR_GAP), start_y + (idx*CAR_GAP), self, self._track)
+            if spawn_positions:
+                sx, sy = spawn_positions[idx % len(spawn_positions)]
+            else:
+                sp = self._track.get_start_position()
+                if sp:
+                    sx, sy = sp
+                    sx = sx + (idx * CAR_GAP)
+                else:
+                    sx, sy = (0, 0)
+            car = Car(sx, sy, "assets/car.png", idx, sx, sy, self, self._track)
             self._cars.append(car)
 
         world_w = self._track.width * CELL_SIZE
