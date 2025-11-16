@@ -138,7 +138,8 @@ class Car:
                     u = 1.0 - t
                     return (3*u*u*t*p1) + (3*u*t*t*p2) + (t**3)
                 scale = _bezier(s)
-                recoil = impact_speed * scale * getattr(self, '_recoil_factor', 0.5)
+                impact_dir = -1 if self._velocity < 0 else 1
+                recoil = impact_speed * scale * getattr(self, '_recoil_factor', 0.5) * impact_dir
                 self._velocity = -recoil
                 self._steering_angle = 0
                 self._collision_end_time = now2 + 1000
